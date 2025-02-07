@@ -7,16 +7,16 @@ from nltk.tokenize import sent_tokenize
 from transformers import pipeline
 import torch
 
-# device = "mps" if torch.backends.mps.is_available() else "cpu"
-# summarizer = pipeline("summarization", model="t5-small", device=0 if device == "mps" else -1)
+device = "mps" if torch.backends.mps.is_available() else "cpu"
+summarizer = pipeline("summarization", model="t5-small", device=0 if device == "mps" else -1)
 
 nltk.download('punkt')
 
 # Directories
-DOCS_DIR = Path("data/docugami/data/v1/docs/")
-TEXT_DIR = Path("data/processed/text/")
-CHUNKS_DIR = Path("data/processed/chunks/")
-METADATA_FILE = Path("data/processed/metadata.json")
+DOCS_DIR = Path("NLP/rag_experiment/data/docugami/data/v1/docs")
+TEXT_DIR = Path("NLP/rag_experiment/data/processed/text")
+CHUNKS_DIR = Path("NLP/rag_experiment/data/processed/chunks")
+METADATA_FILE = Path("NLP/rag_experiment/data/processed/metadata.json")
 
 os.makedirs(TEXT_DIR, exist_ok=True)
 os.makedirs(CHUNKS_DIR, exist_ok=True)
@@ -24,9 +24,6 @@ os.makedirs(CHUNKS_DIR, exist_ok=True)
 # Chunking Parameters
 CHUNK_SIZE = 15  # Larger chunk size for better context
 SUMMARIZATION_THRESHOLD = 30  # Only summarize if chunk > 100 words
-
-# Load a lightweight summarization model
-summarizer = pipeline("summarization", model="t5-small")
 
 def extract_text_from_pdf(pdf_path):
     """Extract text from a PDF file and keep page numbers."""
