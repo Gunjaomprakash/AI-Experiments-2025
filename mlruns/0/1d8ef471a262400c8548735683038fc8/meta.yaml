@@ -1,0 +1,15 @@
+artifact_uri: file:///Users/omprakashgunja/Documents/GitHub/AI-Experiments-2025/AI-Experiments-2025/mlruns/0/1d8ef471a262400c8548735683038fc8/artifacts
+end_time: null
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: 1d8ef471a262400c8548735683038fc8
+run_name: omniscient-cub-705
+run_uuid: 1d8ef471a262400c8548735683038fc8
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1739033165608
+status: 1
+tags: []
+user_id: omprakashgunja

@@ -1,0 +1,15 @@
+artifact_uri: file:///Users/omprakashgunja/Documents/GitHub/AI-Experiments-2025/AI-Experiments-2025/mlruns/0/18e1fb4970ef4d7889f5959a1e25ca19/artifacts
+end_time: null
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: 18e1fb4970ef4d7889f5959a1e25ca19
+run_name: suave-sheep-142
+run_uuid: 18e1fb4970ef4d7889f5959a1e25ca19
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1739059740721
+status: 1
+tags: []
+user_id: omprakashgunja

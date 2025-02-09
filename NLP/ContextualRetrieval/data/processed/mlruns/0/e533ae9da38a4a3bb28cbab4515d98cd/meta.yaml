@@ -1,0 +1,15 @@
+artifact_uri: file:///content/mlruns/0/e533ae9da38a4a3bb28cbab4515d98cd/artifacts
+end_time: 1739093254023
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: e533ae9da38a4a3bb28cbab4515d98cd
+run_name: respected-horse-300
+run_uuid: e533ae9da38a4a3bb28cbab4515d98cd
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1739092859212
+status: 3
+tags: []
+user_id: root

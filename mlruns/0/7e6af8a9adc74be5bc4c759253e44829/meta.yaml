@@ -1,0 +1,15 @@
+artifact_uri: file:///Users/omprakashgunja/Documents/GitHub/AI-Experiments-2025/AI-Experiments-2025/mlruns/0/7e6af8a9adc74be5bc4c759253e44829/artifacts
+end_time: 1739032772273
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: 7e6af8a9adc74be5bc4c759253e44829
+run_name: grandiose-cod-972
+run_uuid: 7e6af8a9adc74be5bc4c759253e44829
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1739032699024
+status: 3
+tags: []
+user_id: omprakashgunja
