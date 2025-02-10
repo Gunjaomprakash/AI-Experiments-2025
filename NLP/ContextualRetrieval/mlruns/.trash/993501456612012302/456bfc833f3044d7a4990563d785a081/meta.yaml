@@ -1,0 +1,16 @@
+artifact_uri: file:///Users/omprakashgunja/Documents/GitHub/AI-Experiments-2025/AI-Experiments-2025/NLP/ContextualRetrieval/mlruns/993501456612012302/456bfc833f3044d7a4990563d785a081/artifacts
+deleted_time: 1739214677760
+end_time: 1739213663177
+entry_point_name: ''
+experiment_id: '993501456612012302'
+lifecycle_stage: deleted
+run_id: 456bfc833f3044d7a4990563d785a081
+run_name: sassy-colt-340
+run_uuid: 456bfc833f3044d7a4990563d785a081
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1739213651190
+status: 3
+tags: []
+user_id: omprakashgunja
