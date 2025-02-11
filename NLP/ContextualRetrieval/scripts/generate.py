@@ -5,7 +5,7 @@ from retrieve import retrieve_documents
 query_text = "Amazon quarterly earnings report"
 
 # Retrieve documents using BM25
-retrieved_texts_bm25 = retrieve_documents(query_text, search_type="bm25")
+retrieved_texts_bm25 = retrieve_documents(query_text, collection_name='' , search_type="bm25")
 print("BM25 Retrieval:")
 for i, text in enumerate(retrieved_texts_bm25, 1):
     print(f"Document {i}: {text}")
