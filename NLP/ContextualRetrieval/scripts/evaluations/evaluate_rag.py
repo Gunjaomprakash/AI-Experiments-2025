@@ -217,14 +217,29 @@ if __name__ == "__main__":
         evaluator = RAGEvaluator()
         final_df = evaluator.run_evaluation()
 
-        # Log metrics
-        metrics = final_df.groupby("Search Type").mean().to_dict()
-        for search_type, metric_values in metrics.items():
-            for metric_name, metric_value in metric_values.items():
-                mlflow.log_metric(f"{search_type}_{metric_name}", metric_value)
+        
+        # Log metrics for each collection and search type
+        for collection in Config.COLLECTIONS:
+            for search_type in Config.SEARCH_METHODS:
+                # Filter the DataFrame for the current collection and search type
+                mlflow.set_tag("collection", collection)
+                mlflow.set_tag("search_type", search_type)
+                subset_df = final_df[(final_df["Collection"] == collection) & 
+                                      (final_df["Search Type"] == search_type)]
+                
+                # Identify numeric columns in the subset
+                numeric_columns = subset_df.select_dtypes(include=np.number).columns
+                
+                # Calculate the mean of the numeric columns
+                if not numeric_columns.empty:
+                    metrics = subset_df[numeric_columns].mean().to_dict()
+                    
+                    # Log each metric with a specific prefix
+                    for metric_name, metric_value in metrics.items():
+                        mlflow.log_metric(f"{collection}_{search_type}_{metric_name}", metric_value)
 
         # Save and log artifacts
-        output_file = Config.OUTPUT_DIR / "mlenhanced_evaluation_metrics.csv"
+        output_file = Config.OUTPUT_DIR / "mlenhanced_evaluation_metrics2.csv"
         final_df.to_csv(output_file, index=False)
         mlflow.log_artifact(str(output_file))
 
