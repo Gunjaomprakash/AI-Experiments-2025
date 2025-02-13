@@ -221,7 +221,7 @@ if __name__ == "__main__":
         # Log metrics for each collection and search type
         for collection in Config.COLLECTIONS:
             for search_type in Config.SEARCH_METHODS:
-                # Filter the DataFrame for the current collection and search type
+               
                 mlflow.set_tag("collection", collection)
                 mlflow.set_tag("search_type", search_type)
                 subset_df = final_df[(final_df["Collection"] == collection) & 
