@@ -1,3 +1,10 @@
 # MLflow tracking files
 mlruns/
 *.pyc
+NLP/ContextualRetrieval/data/.DS_Store
+NLP/ContextualRetrieval/data/processed/.DS_Store
+NLP/ContextualRetrieval/data/.DS_Store
+NLP/ContextualRetrieval/.DS_Store
+NLP/Window_vs_Retrieval/.DS_Store
+/NLP/ContextualRetrieval/weaviate-local
+/NLP/ContextualRetrieval/data

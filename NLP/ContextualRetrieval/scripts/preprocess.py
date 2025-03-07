@@ -1,151 +1,169 @@
-from IPython import get_ipython
-from IPython.display import display
 import json
-import mlflow
+import argparse
+import openai
 import os
 from pathlib import Path
-from openai import OpenAI  # Importing OpenAI SDK
 from tqdm import tqdm
-import concurrent.futures
+from openai import OpenAI
 
-# Initialize OpenAI Client Properly
-openai = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+# Config
+DATA_DIR = Path(os.getenv("PROCESSED_DIR", "data/processed"))
+INPUT_FILE = DATA_DIR / "all_metadata_cleaned.json"
+STANDARD_OUTPUT = DATA_DIR / "standard_rag.json"
+CONTEXTUAL_OUTPUT = DATA_DIR / "contextual_rag.json"
+
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY")
+deepseekClient = OpenAI(api_key=DEEPSEEK_API_KEY, base_url="https://api.deepseek.com")
 
 
-METADATA_FILE = Path("metadata.json")
-OUTPUT_FILE = Path("metadata_contextual.json")
+def call_openai(prompt):
+    """Calls OpenAI API to generate contextual enrichment."""
 
-# Load metadata.json (contains chunk IDs)
-with open(METADATA_FILE, "r") as f:
-    metadata = json.load(f)
+    response = openai.chat.completions.create(
+        model="gpt-3.5-turbo",
+        messages=[
+            {"role": "system", "content": "You are an expert in document retrieval. Generate succinct context for search retrieval."},
+            {"role": "user", "content": prompt}
+        ],
+        temperature=0.7,
+    )
+    return response.choices[0].message.content.strip()
 
-def retrieve_with_context(chunk, json_data, num_neighbors=6):
-    """
-    Retrieves a chunk along with its adjacent left and right neighboring chunks.
-    Handles edge cases for first and last chunks.
+def extract_table_data(chunk_id, tables):
+    """Fetches the full related table data for a given chunk."""
+    return [table for table in tables if chunk_id in table.get("related_text_chunks", [])]
 
+def extract_table_summary(chunk_id, tables):
+    """Creates a structured text representation of relevant tables.
+    
     Args:
-        chunk (dict): The full JSON chunk object.
-        json_data (list): List of JSON chunk objects (sorted by page and chunk order).
-        num_neighbors (int): Number of left and right chunks to retrieve.
-
+        chunk_id (str): The ID of the chunk to find related tables
+        tables (list): List of table dictionaries
+        
     Returns:
-        tuple: (main_chunk, left_chunks, right_chunks)
+        str: Formatted table summary or empty string if no tables found
     """
-    chunk_page = chunk["page"]
-
-    # Sort chunks by (page, chunk order) for consistent indexing
-    sorted_chunks = sorted(json_data, key=lambda c: (c["page"], c.get("chunk_order", 0)))
-
-    # Find the index of the given chunk
-    chunk_index = next((i for i, c in enumerate(sorted_chunks) if c["page"] == chunk_page and c["chunk_id"] == chunk["chunk_id"]), None)
-
-    if chunk_index is None:
-        raise ValueError(f"Chunk not found in data.")
-
-    total_chunks = len(sorted_chunks)
-
-    # Determine left and right chunk indices, ensuring they don't go out of bounds
-    left_idx = max(chunk_index - num_neighbors, 0)
-    right_idx = min(chunk_index + num_neighbors + 1, total_chunks)
-
-    # Extract main chunk object
-    main_chunk = sorted_chunks[chunk_index]
-
-    # Extract left and right context chunk objects
-    left_chunks = [c["text"] for c in sorted_chunks[left_idx:chunk_index]] if chunk_index > 0 else []
-    right_chunks = [c["text"] for c in sorted_chunks[chunk_index + 1:right_idx]] if chunk_index < total_chunks - 1 else []
-
-    return main_chunk, left_chunks, right_chunks
-
-def generate_contextual_description(chunk):
-
-    try:
-        main_chunk, left_chunks, right_chunks = retrieve_with_context(chunk, metadata)
-
-        prompt = f"""
-        Here is the chunk we want to situate within the whole document: 
-
-        <chunk> 
-        {main_chunk["text"]} 
-        </chunk> 
-
-        To provide a richer understanding, here are its adjacent chunks:
-
-        <left_chunks>
-        {" ".join(left_chunks) if left_chunks else "No left context available."}
-        </left_chunks>
-
-        <right_chunks>
-        {" ".join(right_chunks) if right_chunks else "No right context available."}
-        </right_chunks>
-
-        Please generate a **succinct contextual description** that situates this chunk within the document.  
-        The goal is to **enhance search retrieval** by preserving meaning and coherence.
-
-        **Rules:**
-        - Try including key things from the left and right chunks if relevant.
-        - Focus on **bridging the meaning** between this chunk and the overall document.
-        - Use the **adjacent chunks** to refine the context.
-        - **Do NOT summarize** the chunk itself.
-        - **Answer ONLY with the succinct contextual description and nothing else.**
-        """
-
-        response = openai.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[
-                {"role": "system", "content": "You are a highly effective text analyzing assistant."},
-                {"role": "user", "content": prompt},
-            ],
-        )
-        if response and response.choices:
-            return response.choices[0].message.content
-        else:
-            print("Warning: No choices returned from API.")
-            return ""
-    except Exception as e:
-        print(f"Error calling API: {e}")
+    if not tables:
         return ""
+        
+    summaries = []
+    for table in tables:
+        if chunk_id not in table.get("related_text_chunks", []):
+            continue
+            
+        table_data = table.get("table_data", [])
+        if not table_data:
+            continue
+            
+        # Extract headers (assuming first row contains headers)
+        headers = [str(col) for col in table_data[0] if col]
+        
+        # Format data rows
+        formatted_rows = []
+        for row in table_data[1:]:  # Skip header row
+            # Filter out empty cells and format each row
+            row_data = [str(cell) for cell in row if cell]
+            if row_data:
+                formatted_rows.append(" | ".join(row_data))
+        
+        # Combine headers and rows
+        if headers:
+            summary = f"Table Headers: {' | '.join(headers)}\n"
+            summary += f"Data: {'; '.join(formatted_rows)}"
+            summaries.append(summary)
+    
+    return "Relevant tables:\n" + "\n---\n".join(summaries) if summaries else ""
 
-# Function to process a single chunk
-def process_chunk(chunk):
-    contextual_summary = generate_contextual_description(chunk)
-    chunk["contextual_description"] = contextual_summary
-    return chunk
+def enrich_chunk(chunk, title, section, prev_chunk, next_chunk, tables):
+    """Generates a succinct contextual enrichment for a given chunk using OpenAI API."""
+    table_summaries = extract_table_summary(chunk["chunk_id"], tables)
+    
+    prompt = f"""
+    <document>
+    Title: {title}
+    Section: {section}
+    Relevant Context:
+    - Previous: {prev_chunk.get('content', '') if prev_chunk else ''}
+    - Next: {next_chunk.get('content', '') if next_chunk else ''}
+    - Tables: {table_summaries}
+    </document>
+    
+    <chunk>
+    {chunk['content']}
+    </chunk>
+    
 
-# Track extra computation with MLflow
-mlflow.start_run()
+    Please provide a **short, retrieval-optimized** context that situates this chunk **within the document flow**. Ensure it:
+    1. **Clearly links to Previous & Next chunks** (where relevant).
+    2. **Explicitly integrates table data** (if available).
+    3. **Optimizes for search retrieval**—phrasing should make it easier to find.
+    4. **Avoids unnecessary repetition** of raw chunk content.
 
-# Track total token usage
-extra_tokens_used = 0
-chunks_processed = 0
+    Example: 
+    Original chunk: "The company's revenue grew by 3% over the previous quarter."
+    Contextualized chunk: "In Q2 2023, ACME Corp’s revenue increased by 3% from $314M in Q1. Previous data indicates steady growth in customer demand."
 
-# Generate contextual descriptions using multiprocessing
-with concurrent.futures.ThreadPoolExecutor() as executor:
-    results = list(tqdm(executor.map(process_chunk, metadata), total=len(metadata), desc="Processing chunks"))
+    Answer only with the succinct context and nothing else.
+    """
+    if table_summaries:
+        print(f"Chunk ID: {chunk['chunk_id']}\n{table_summaries}")
+    return call_openai(prompt)
 
-# Update metadata with results
-metadata = results
+def process_chunks(data):
+    """Processes chunks to generate both Standard and Contextual RAG datasets."""
+    standard_chunks = []
+    contextual_chunks = []
+    
+    print("Processing chunks with LLM enrichment...")
+    for doc_idx, doc in enumerate(data):
+        title = doc.get("source_doc", "")
+        text_chunks = doc["text_chunks"]
+        tables = doc.get("tables", [])
+        
+        for i, chunk in enumerate(tqdm(text_chunks, desc=f"Doc {doc_idx}: Processing chunks", unit="chunk", leave=False)):
+            
+            chunk_copy = chunk.copy()
+            chunk_copy["related_tables"] = extract_table_data(chunk["chunk_id"], tables)
+            standard_chunks.append(chunk_copy)  # Standard RAG (structured raw chunks)
+            
+            # Add context from neighboring chunks
+            prev_chunk = text_chunks[i-1] if i > 0 else None
+            next_chunk = text_chunks[i+1] if i < len(text_chunks) - 1 else None
+            enriched_context = enrich_chunk(chunk, title, chunk.get("section", ""), prev_chunk, next_chunk, tables)
+            
+            enriched_chunk = chunk.copy()
+            enriched_chunk["context"] = enriched_context
+            enriched_chunk["tables_context"] = extract_table_summary(chunk["chunk_id"], tables)
+            enriched_chunk["related_tables"] = extract_table_data(chunk["chunk_id"], tables)
+            
+            contextual_chunks.append(enriched_chunk)
+            # break  # For testing, remove to process all chunks
+    
+    return standard_chunks, contextual_chunks
 
-# Save updated metadata with contextual descriptions
-with open(OUTPUT_FILE, "w") as f:
-    json.dump(metadata, f, indent=4)
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--input", type=str, default=INPUT_FILE, help="Input JSON file")
+    parser.add_argument("--standard_output", type=str, default=STANDARD_OUTPUT, help="Standard RAG output JSON")
+    parser.add_argument("--contextual_output", type=str, default=CONTEXTUAL_OUTPUT, help="Contextual RAG output JSON")
+    args = parser.parse_args()
+    
+    print("Loading data...")
+    with open(args.input, "r", encoding="utf-8") as f:
+        data = json.load(f)
+    
+    standard_chunks, contextual_chunks = process_chunks(data)
+    
+    print("Saving Standard RAG chunks...")
+    with open(args.standard_output, "w", encoding="utf-8") as f:
+        json.dump(standard_chunks, f, indent=4, ensure_ascii=False)
+    
+    print("Saving Contextual RAG chunks...")
+    with open(args.contextual_output, "w", encoding="utf-8") as f:
+        json.dump(contextual_chunks, f, indent=4, ensure_ascii=False)
+    
+    print("Preprocessing with LLM-based enrichment complete!")
 
-# Calculate and log metrics
-extra_tokens_used = sum(len(chunk.get("contextual_description", "").split()) for chunk in metadata)
-chunks_processed = len(metadata)
-
-# Log computation cost
-mlflow.log_param("extra_compute_task", "Contextual RAG Context Generation")
-mlflow.log_metric("extra_tokens_used", extra_tokens_used)
-mlflow.log_metric("chunks_processed", chunks_processed)
-
-# End MLflow run
-mlflow.end_run()
-
-print(f"Contextual descriptions generated and saved to {OUTPUT_FILE}.")
-print(f"Total extra tokens used: {extra_tokens_used}")
-print(f"Total chunks processed: {chunks_processed}")
-
-# Ensure MLflow session is properly closed
-mlflow.end_run()
+if __name__ == "__main__":
+    main()

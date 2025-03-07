@@ -27,7 +27,7 @@ def process_json():
     with open(OUTPUT_JSON, "w", encoding="utf-8") as f:
         json.dump(cleaned_data, f, indent=4, ensure_ascii=False)
 
-    print(f"✅ Cleaned JSON saved as: {OUTPUT_JSON}")
+    print(f"Cleaned JSON saved as: {OUTPUT_JSON}")
 
 if __name__ == "__main__":
     process_json()
