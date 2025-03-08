@@ -15,7 +15,7 @@ import mlflow
 
 # System setup
 sys.path.append(str(Path(__file__).parent.parent))
-from retrieve import retrieve_documents
+from NLP.ContextualRetrieval.scripts.out.retrieve import retrieve_documents
 
 # Configuration
 class Config:
