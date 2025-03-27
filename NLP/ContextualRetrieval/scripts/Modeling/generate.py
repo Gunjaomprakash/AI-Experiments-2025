@@ -35,7 +35,7 @@ def generate_response(query,context,llm):
 
                     """
 
-    user_query = f""" {context}\n\nBased on the provided document context, generate a response to the following question:\n\nQuery: {query}\nEnsure that your response is strictly grounded in the provided document chunks. Cite all sources correctly."""
+    user_query = f"""{context}\n\nBased on the provided context, answer the following question using a structured format (bullet points or numbered list where applicable), followed by a concluding paragraph summarizing the key findings.  The question is:\n\nQuery: {query}\nEnsure that your response is strictly grounded in the provided context and cite all sources correctly using (Source) format.  Focus on the findings and their meaning."""
 
     
     # Call OpenAI's GPT model
