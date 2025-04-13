@@ -18,7 +18,7 @@ export const ChatMessages: React.FC<ChatMessagesProps> = ({ chatMessages }) => {
   return (
     <div
       ref={chatContainerRef}
-      className="absolute w-[400px] h-[350px] bottom-[130px] left-[104px] flex flex-col gap-4 overflow-y-auto pr-4"
+      className="absolute w-[500px] h-[350px] bottom-[130px] left-[104px] flex flex-col gap-4 overflow-y-auto pr-4"
       style={{
         scrollbarWidth: 'thin',
         scrollbarColor: '#30792e #f0f0f0',

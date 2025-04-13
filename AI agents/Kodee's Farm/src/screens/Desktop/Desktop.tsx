@@ -169,12 +169,16 @@ export const Desktop = (): JSX.Element => {
                 </div>
               </div>
               
-              {/* Mascot character positioned at the right of the chat */}
-              <img
-                className="absolute w-[80px] h-[80px] bottom-[70px] right-12 object-cover"
-                alt="Mascot"
-                src="/thinking3-1.png"
-              />
+              {/* Mascot video positioned at the top-left of the chat */}
+              <video
+                className="absolute w-[80px] h-[100px] top-4 left-4 object-cover"
+                autoPlay
+                loop
+                muted
+              >
+                <source src="/idle.mp4" type="video/mp4" />
+                Your browser does not support the video tag.
+              </video>
             </div>
           </div>
           

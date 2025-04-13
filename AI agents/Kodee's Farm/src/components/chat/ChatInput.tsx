@@ -1,50 +1,51 @@
-import React, { useState } from 'react';
-import { Input } from '../ui/input';
-import { Button } from '../ui/button';
+import React, { useState } from "react";
+import { FiSend, FiPaperclip } from "react-icons/fi"; // Import icons from react-icons
 
 interface ChatInputProps {
   onSubmit: (message: string) => void;
 }
 
 export const ChatInput: React.FC<ChatInputProps> = ({ onSubmit }) => {
-  const [inputValue, setInputValue] = useState('');
+  const [message, setMessage] = useState("");
+  const [attachmentEnabled, setAttachmentEnabled] = useState(false); // State for toggling attachment
 
-  const handleSubmit = () => {
-    if (!inputValue.trim()) return;
-    onSubmit(inputValue);
-    setInputValue('');
-  };
-
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      handleSubmit();
+  const handleSend = () => {
+    if (message.trim() !== "") {
+      onSubmit(message);
+      setMessage(""); // Clear the input after sending
     }
   };
 
   return (
-    <div className="absolute bottom-[51px] left-[104px] flex items-center gap-4">
-      <div className="relative w-[322px] h-[54px]">
-        <Input
-          className="w-full h-full rounded-[45px] border border-solid border-[#77797c] px-5 py-4 text-sm font-medium text-[#1b2559] pr-12"
-          placeholder="Help me with..."
-          value={inputValue}
-          onChange={(e) => setInputValue(e.target.value)}
-          onKeyDown={handleKeyPress}
-        />
-        {/* Attachment Icon */}
-        <button
-          className="absolute right-4 top-1/2 transform -translate-y-1/2 text-[#77797c]"
-          onClick={() => alert('Attachment icon clicked!')}
-        >
-          📎
-        </button>
-      </div>
-      <Button
-        className="w-[146px] h-[54px] bg-[#30792e] rounded-[45px] text-white text-sm font-semibold"
-        onClick={handleSubmit}
+    <div className="flex items-center space-x-2">
+      {/* Attachment Toggle Button */}
+      <button
+        onClick={() => setAttachmentEnabled(!attachmentEnabled)}
+        className={`p-2 rounded-full ${
+          attachmentEnabled ? "bg-green-500 text-white" : "bg-gray-200 text-gray-600"
+        }`}
+        title="Toggle Attachment"
       >
-        Submit
-      </Button>
+        <FiPaperclip size={20} />
+      </button>
+
+      {/* Input Field */}
+      <input
+        type="text"
+        className="flex-1 border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-500"
+        placeholder="Help me with..."
+        value={message}
+        onChange={(e) => setMessage(e.target.value)}
+      />
+
+      {/* Send Button */}
+      <button
+        onClick={handleSend}
+        className="p-2 bg-green-500 text-white rounded-full hover:bg-green-600 focus:outline-none"
+        title="Send Message"
+      >
+        <FiSend size={20} />
+      </button>
     </div>
   );
 };
