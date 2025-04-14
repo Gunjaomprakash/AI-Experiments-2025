@@ -21,34 +21,49 @@ interface Field {
   color: string;
 }
 
-export const Desktop = (): JSX.Element => {
-  // Function to evaluate conditions and update field color
-  const evaluateConditions = useCallback((fields: Field[]): Field[] => {
-    return fields.map((field) => {
-      let newColor = "#30792e"; // Default color
+interface Environment {
+  temperature?: number;
+  humidity?: number;
+  rain_forecast?: number;
+  soil_fertility?: number;
+  heat_wave?: number;
+  disease?: number;
+}
 
-      for (const condition of conditions) {
-        const { trigger_conditions, field_color } = condition;
-        const matches = Object.entries(trigger_conditions).every(([metricName, condition]) => {
-          const metric = field.metrics.find((m) => m.name === metricName);
-          if (!metric) return false;
+const optimalRanges = {
+  temperature: [60, 80],
+  humidity: [40, 100],
+  rain_forecast: [20, 80],
+  soil_fertility: [60, 100],
+  heat_wave: [0, 40],
+  disease: [0, 30],
+};
 
-          if (condition.gt !== undefined && metric.value <= condition.gt) return false;
-          if (condition.lt !== undefined && metric.value >= condition.lt) return false;
-
-          return true;
-        });
-
-        if (matches) {
-          newColor = field_color;
-          break;
-        }
+function calculateHealthScore(env: Environment): number {
+  let score = 0;
+  for (const [key, value] of Object.entries(env)) {
+    if (value !== undefined) { // Ensure value is not undefined
+      const [min, max] = optimalRanges[key as keyof typeof optimalRanges] || [];
+      if (min !== undefined && max !== undefined) {
+        if (value < min) score += min - value;
+        else if (value > max) score += value - max;
       }
+    }
+  }
+  return score;
+}
 
-      return { ...field, color: newColor };
-    });
-  }, []);
+function getFieldColor(score: number): string {
+  if (score < 20) return "green";
+  if (score < 30) return "yellow";
+  if (score < 40) return "lightorange"; // New step
+  if (score < 50) return "orange";
+  if (score < 60) return "darkorange"; // New step
+  if (score < 70) return "red";
+  return "darkred"; // New step
+}
 
+export const Desktop = (): JSX.Element => {
   // Field data with associated metrics
   const initialFields: Field[] = [
     {
@@ -91,6 +106,17 @@ export const Desktop = (): JSX.Element => {
       color: "#30792e", // Default color
     },
   ];
+
+  const evaluateConditions = useCallback((fields: Field[]): Field[] => {
+    return fields.map((field) => {
+      const env = Object.fromEntries(
+        field.metrics.map((metric) => [metric.name.toLowerCase(), metric.value])
+      );
+      const healthScore = calculateHealthScore(env);
+      const newColor = getFieldColor(healthScore);
+      return { ...field, color: newColor };
+    });
+  }, []);
 
   // Initialize fields with evaluated conditions
   const [fields, setFields] = useState<Field[]>(() => evaluateConditions(initialFields));
