@@ -1,5 +1,7 @@
 import React, { useState } from "react";
-import { FiSend, FiPaperclip, FiUpload } from "react-icons/fi"; // Import icons from react-icons
+import { GoFileSymlinkFile } from "react-icons/go";
+import { ImUpload } from "react-icons/im";
+import { IoSend } from "react-icons/io5";
 
 interface ChatInputProps {
   onSubmit: (message: string, imageUrl?: string | null) => void;
@@ -32,7 +34,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onSubmit }) => {
       {/* Image Upload Indicator */}
       {uploadedImage && (
         <div className="text-sm text-green-600 font-medium">
-          Image added: {uploadedImage.name}
+          <ImUpload className="inline-block mr-1" /> {uploadedImage.name}
         </div>
       )}
 
@@ -41,21 +43,21 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onSubmit }) => {
         <button
           onClick={() => setAttachmentEnabled(!attachmentEnabled)}
           className={`p-2 rounded-full ${
-            attachmentEnabled ? "bg-green-500 text-white" : "bg-gray-200 text-gray-600"
+            attachmentEnabled ? "bg-green-700 text-white" : "bg-gray-200 text-gray-600"
           }`}
           title="Toggle Attachment"
         >
-          <FiPaperclip size={20} />
+          <GoFileSymlinkFile size={20} />
         </button>
 
         {/* Image Upload Button */}
         <label
           className={`p-2 rounded-full cursor-pointer ${
-            uploadedImage ? "bg-green-500 text-white" : "bg-gray-200 text-gray-600"
+            uploadedImage ? "bg-green-700 text-white" : "bg-gray-200 text-gray-600"
           }`}
           title="Upload Image"
         >
-          <FiUpload size={20} />
+          <ImUpload size={20} />
           <input
             type="file"
             accept="image/*"
@@ -76,10 +78,10 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onSubmit }) => {
         {/* Send Button */}
         <button
           onClick={handleSend}
-          className="p-2 bg-green-500 text-white rounded-full hover:bg-green-600 focus:outline-none"
+          className="p-2 bg-green-700 text-white rounded-full hover:bg-green-900 focus:outline-none"
           title="Send Message"
         >
-          <FiSend size={20} />
+          <IoSend size={20} />
         </button>
       </div>
     </div>

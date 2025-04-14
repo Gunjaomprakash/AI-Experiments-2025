@@ -5,7 +5,9 @@ import { ChatInput } from "../../components/chat/ChatInput";
 import Field  from "../../components/ui/Field";
 import { ToolUsage } from "../../components/processing/ToolUsage";
 import { ChatMessage } from '../../types';
-import conditions from "../../docs/conditions.json"; // Import conditions JSON
+import conditions from "../../docs/conditions.json"; 
+import { BsRobot } from "react-icons/bs";
+
 
 interface Metric {
   name: string;
@@ -119,6 +121,9 @@ export const Desktop = (): JSX.Element => {
     },
   ]);
 
+  // State to track the active toggle button
+  const [activeToggle, setActiveToggle] = useState<'user' | 'robot'>('user');
+
   // Handle chat submission
   const handleChatSubmit = (message: string, imageUrl?: string | null) => {
     setChatMessages((prev) => [
@@ -201,7 +206,7 @@ export const Desktop = (): JSX.Element => {
                   key={field.id}
                   label={field.name}
                   rows={10}
-                  cols={75}
+                  cols={60}
                   style={{ border: "1px solid #30792e", padding: "1px" }}
                   color={field.color} // Pass dynamic color
                 />
@@ -219,16 +224,35 @@ export const Desktop = (): JSX.Element => {
                 </div>
               </div>
               
-              {/* Mascot video positioned at the top-left of the chat */}
-              <video
-                className="absolute w-[80px] h-[100px] top-4 left-4 object-cover"
-                autoPlay
-                loop
-                muted
-              >
-                <source src="/idle.mp4" type="video/mp4" />
-                Your browser does not support the video tag.
-              </video>
+                {/* Mascot video and toggle button container */}
+                <div className="absolute top-4 left-4 flex flex-col items-center">
+                {/* Mascot video */}
+                <video
+                  className="w-[80px] h-[100px] object-cover"
+                  autoPlay
+                  loop
+                  muted
+                >
+                  <source src="/idle.mp4" type="video/mp4" />
+                  Your browser does not support the video tag.
+                </video>
+
+                {/* Toggle button */}
+                <button
+                  className={`mt-2 p-2 rounded-full flex items-center justify-center w-10 h-10 ${
+                  activeToggle === 'robot' ? 'bg-[#30792e] text-white' : 'bg-gray-200'
+                  }`}
+                  title="Toggle"
+                  onClick={() => setActiveToggle(activeToggle === 'robot' ? 'user' : 'robot')}
+                >
+                  <div className="relative flex items-center justify-center">
+                  <BsRobot className="text-xl" />
+                  {activeToggle === 'robot' && (
+                    <div className="absolute inset-0 border-2 border-t-transparent border-[#ffffff] rounded-full animate-spin"></div>
+                  )}
+                  </div>
+                </button>
+                </div>
             </div>
           </div>
           
@@ -259,7 +283,7 @@ export const Desktop = (): JSX.Element => {
                               handleMetricChange(field.id, metricIndex, newValue as number)
                             }
                             sx={{
-                              color: "#516348", 
+                              color: "#30792e", 
                               width: "100%",
                             }}
                           />

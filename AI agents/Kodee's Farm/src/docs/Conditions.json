@@ -3,8 +3,8 @@
       "name": "Temperature Alert",
       "field_color": "#FF5733",
       "trigger_conditions": {
-        "temperature": { "gt": 60 }
-        
+        "temperature": { "gt": 60 },
+        "humidity": { "lt": 50 }
       },
       "actions": [
         { "name": "activate_cooling_system" },

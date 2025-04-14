@@ -34,7 +34,7 @@ const Field: React.FC<FieldProps> = ({ label, rows = 5, cols = 10, style, color 
           display: 'grid',
           gridTemplateRows: `repeat(${rows}, 1fr)`,
           gridTemplateColumns: `repeat(${cols}, 1fr)`,
-          gap: '4px', // Reduced space between dots
+          gap: '5px', // Reduced space between dots
         }}
       >
         {grid.map((row, rowIndex) =>
