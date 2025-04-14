@@ -5,7 +5,6 @@ import { ChatInput } from "../../components/chat/ChatInput";
 import Field  from "../../components/ui/Field";
 import { ToolUsage } from "../../components/processing/ToolUsage";
 import { ChatMessage } from '../../types';
-import conditions from "../../docs/conditions.json"; 
 import { BsRobot } from "react-icons/bs";
 
 
@@ -154,8 +153,39 @@ export const Desktop = (): JSX.Element => {
   const handleChatSubmit = (message: string, imageUrl?: string | null) => {
     setChatMessages((prev) => [
       ...prev,
-      { type: "user", text: message, imageUrl: imageUrl || undefined }, // Ensure imageUrl is undefined if null
+      { type: "user", text: message, imageUrl: imageUrl || undefined },
     ]);
+
+    // Derive environmentState from fields
+    const environmentState = fields.reduce((acc, field) => {
+      field.metrics.forEach((metric) => {
+        acc[metric.name.toLowerCase()] = metric.value;
+      });
+      return acc;
+    }, {} as Record<string, number>);
+
+    // Make a fetch API call to the provided URL
+    fetch("https://cors-anywhere.herokuapp.com/https://webhook.site/d68e5135-b0f0-421d-9a73-8aa33443c10e", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        "message": "hello",
+      }),
+    })
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error("Network response was not ok");
+        }
+        return response.text();
+      })
+      .then((data) => {
+        console.log("API response:", data);
+      })
+      .catch((error) => {
+        console.error("Error while making API call:", error);
+      });
 
     setTimeout(() => {
       setChatMessages((prev) => [
@@ -166,8 +196,8 @@ export const Desktop = (): JSX.Element => {
         },
       ]);
 
-      setThinkingMessages((prev) => [
-        ...prev,
+      // Refresh the thoughts tab with new messages
+      setThinkingMessages([
         `Processing your input: "${message}"`,
         "Analyzing crop data...",
         "Checking soil moisture levels...",
@@ -185,7 +215,7 @@ export const Desktop = (): JSX.Element => {
             { name: "Tool 3", status: "completed" },
           ],
         },
-        ...prev, // Prepend the new tool chain
+        ...prev,
       ]);
     }, 500);
   };
@@ -263,7 +293,7 @@ export const Desktop = (): JSX.Element => {
                   Your browser does not support the video tag.
                 </video>
 
-                {/* Toggle button */}
+                {/* Agent mode Toggle button */}
                 <button
                   className={`mt-2 p-2 rounded-full flex items-center justify-center w-10 h-10 ${
                   activeToggle === 'robot' ? 'bg-[#30792e] text-white' : 'bg-gray-200'

@@ -39,7 +39,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onSubmit }) => {
       )}
 
       <div className="flex items-center space-x-2">
-        {/* Attachment Toggle Button */}
+        {/* RAGAttachment Toggle Button */}
         <button
           onClick={() => setAttachmentEnabled(!attachmentEnabled)}
           className={`p-2 rounded-full ${
