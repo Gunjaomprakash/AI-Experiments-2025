@@ -17,6 +17,7 @@ interface MetricsProps {
   onMetricChange: (index: number, newValue: number) => void;
 }
 
+
 const Metrics: React.FC<MetricsProps> = ({ fields, onMetricChange }) => {
   return (
     <Box>

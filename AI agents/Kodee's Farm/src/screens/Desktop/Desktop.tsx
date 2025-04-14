@@ -1,26 +1,66 @@
-import React, { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Slider } from "@mui/material"; // Import Material-UI Slider
 import { ChatMessages } from "../../components/chat/ChatMessages";
 import { ChatInput } from "../../components/chat/ChatInput";
-import { ThinkingPanel } from "../../components/processing/ThinkingPanel";
-import Field from "../../components/ui/Field";
+import Field  from "../../components/ui/Field";
 import { ToolUsage } from "../../components/processing/ToolUsage";
 import { ChatMessage } from '../../types';
+import conditions from "../../docs/conditions.json"; // Import conditions JSON
+
+interface Metric {
+  name: string;
+  value: number;
+}
+
+interface Field {
+  id: number;
+  name: string;
+  metrics: Metric[];
+  color: string;
+}
 
 export const Desktop = (): JSX.Element => {
+  // Function to evaluate conditions and update field color
+  const evaluateConditions = useCallback((fields: Field[]): Field[] => {
+    return fields.map((field) => {
+      let newColor = "#30792e"; // Default color
+
+      for (const condition of conditions) {
+        const { trigger_conditions, field_color } = condition;
+        const matches = Object.entries(trigger_conditions).every(([metricName, condition]) => {
+          const metric = field.metrics.find((m) => m.name === metricName);
+          if (!metric) return false;
+
+          if (condition.gt !== undefined && metric.value <= condition.gt) return false;
+          if (condition.lt !== undefined && metric.value >= condition.lt) return false;
+
+          return true;
+        });
+
+        if (matches) {
+          newColor = field_color;
+          break;
+        }
+      }
+
+      return { ...field, color: newColor };
+    });
+  }, []);
+
   // Field data with associated metrics
-  const [fields, setFields] = useState([
+  const initialFields: Field[] = [
     {
       id: 1,
       name: "Field 1",
       metrics: [
-        { name: "Temperature", value: 67 },
-        { name: "Humidity", value: 80 },
-        { name: "Rain Forecast", value: 67 },
+        { name: "temperature", value: 80 },
+        { name: "humidity", value: 20 },
+        { name: "Rain Forecast", value: 20 },
         { name: "Soil Fertility", value: 80 },
         { name: "Heat Wave", value: 50 },
         { name: "Disease", value: 50 },
       ],
+      color: "#30792e", // Default color
     },
     {
       id: 2,
@@ -33,6 +73,7 @@ export const Desktop = (): JSX.Element => {
         { name: "Heat Wave", value: 55 },
         { name: "Disease", value: 45 },
       ],
+      color: "#30792e", // Default color
     },
     {
       id: 3,
@@ -45,8 +86,16 @@ export const Desktop = (): JSX.Element => {
         { name: "Heat Wave", value: 60 },
         { name: "Disease", value: 40 },
       ],
+      color: "#30792e", // Default color
     },
-  ]);
+  ];
+
+  // Initialize fields with evaluated conditions
+  const [fields, setFields] = useState<Field[]>(() => evaluateConditions(initialFields));
+
+  useEffect(() => {
+    setFields((prevFields) => evaluateConditions(prevFields)); // Re-evaluate conditions on updates
+  }, [evaluateConditions]);
 
   // Chat state
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
@@ -71,8 +120,11 @@ export const Desktop = (): JSX.Element => {
   ]);
 
   // Handle chat submission
-  const handleChatSubmit = (message: string) => {
-    setChatMessages((prev) => [...prev, { type: "user", text: message }]);
+  const handleChatSubmit = (message: string, imageUrl?: string | null) => {
+    setChatMessages((prev) => [
+      ...prev,
+      { type: "user", text: message, imageUrl: imageUrl || undefined }, // Ensure imageUrl is undefined if null
+    ]);
 
     setTimeout(() => {
       setChatMessages((prev) => [
@@ -86,10 +138,6 @@ export const Desktop = (): JSX.Element => {
       setThinkingMessages((prev) => [
         ...prev,
         `Processing your input: "${message}"`,
-        "Analyzing crop data...",
-        "Checking soil moisture levels...",
-        "Evaluating weather patterns...",
-        "Generating insights...",
         "Analyzing crop data...",
         "Checking soil moisture levels...",
         "Evaluating weather patterns...",
@@ -114,8 +162,8 @@ export const Desktop = (): JSX.Element => {
   // Handle slider change for metrics
   const handleMetricChange = useCallback(
     (fieldId: number, metricIndex: number, newValue: number) => {
-      setFields((prevFields) =>
-        prevFields.map((field) =>
+      setFields((prevFields) => {
+        const updatedFields = prevFields.map((field) =>
           field.id === fieldId
             ? {
                 ...field,
@@ -124,10 +172,11 @@ export const Desktop = (): JSX.Element => {
                 ),
               }
             : field
-        )
-      );
+        );
+        return evaluateConditions(updatedFields); // Re-evaluate conditions after updating metrics
+      });
     },
-    []
+    [evaluateConditions]
   );
 
   return (
@@ -152,8 +201,9 @@ export const Desktop = (): JSX.Element => {
                   key={field.id}
                   label={field.name}
                   rows={10}
-                  cols={80}
+                  cols={75}
                   style={{ border: "1px solid #30792e", padding: "1px" }}
+                  color={field.color} // Pass dynamic color
                 />
               ))}
             </div>
@@ -209,7 +259,7 @@ export const Desktop = (): JSX.Element => {
                               handleMetricChange(field.id, metricIndex, newValue as number)
                             }
                             sx={{
-                              color: "#1b2559", // Neutral color for the slider
+                              color: "#516348", 
                               width: "100%",
                             }}
                           />

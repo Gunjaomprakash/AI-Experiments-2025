@@ -45,6 +45,13 @@ export const ChatMessages: React.FC<ChatMessagesProps> = ({ chatMessages }) => {
           >
             <CardContent className="p-4">
               <p className="text-base break-words">{message.text}</p>
+              {message.imageUrl && (
+                <img
+                  src={message.imageUrl}
+                  alt="Uploaded"
+                  className="mt-2 rounded-lg max-w-full"
+                />
+              )}
             </CardContent>
           </Card>
         </div>
