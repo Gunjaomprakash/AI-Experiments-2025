@@ -4,29 +4,31 @@ import { ImUpload } from "react-icons/im";
 import { IoSend } from "react-icons/io5";
 
 interface ChatInputProps {
-  onSubmit: (message: string, imageUrl?: string | null) => void;
+  onSubmit: (message: string, imageUrl?: string | null, attachmentEnabled?: boolean) => void;
+  onImageSelect?: (file: File | null) => void;
 }
 
-export const ChatInput: React.FC<ChatInputProps> = ({ onSubmit }) => {
+export const ChatInput: React.FC<ChatInputProps> = ({ onSubmit, onImageSelect }) => {
   const [message, setMessage] = useState("");
-  const [attachmentEnabled, setAttachmentEnabled] = useState(false); // State for toggling attachment
-  const [uploadedImage, setUploadedImage] = useState<File | null>(null); // State for storing uploaded image
+  const [attachmentEnabled, setAttachmentEnabled] = useState(false);
+  const [uploadedImage, setUploadedImage] = useState<File | null>(null);
 
   const handleSend = () => {
     if (message.trim() !== "" || uploadedImage) {
-      const imageUrl = uploadedImage ? URL.createObjectURL(uploadedImage) : null; // Create a temporary URL for the image
-      onSubmit(message, imageUrl);
-      setMessage(""); // Clear the input after sending
-      setUploadedImage(null); // Clear the uploaded image after sending
+      const imageUrl = uploadedImage ? URL.createObjectURL(uploadedImage) : null;
+      onSubmit(message, imageUrl, attachmentEnabled);
+      setMessage("");
+      setUploadedImage(null);
     }
   };
 
-  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      setUploadedImage(file); // Store the uploaded file in state
-      console.log("Image uploaded:", file.name); // Log the file name for debugging
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0] || null;
+    setUploadedImage(file); // Store the uploaded file in state
+    if (onImageSelect) {
+      onImageSelect(file); // Notify parent component
     }
+    console.log("Image uploaded:", file?.name); // Log the file name for debugging
   };
 
   return (
@@ -62,7 +64,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onSubmit }) => {
             type="file"
             accept="image/*"
             className="hidden"
-            onChange={handleImageUpload}
+            onChange={handleFileChange} // Use handleFileChange here
           />
         </label>
 

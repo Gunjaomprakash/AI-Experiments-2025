@@ -149,75 +149,59 @@ export const Desktop = (): JSX.Element => {
   // State to track the active toggle button
   const [activeToggle, setActiveToggle] = useState<'user' | 'robot'>('user');
 
+  // Add state for selected image file
+  const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
+
   // Handle chat submission
-  const handleChatSubmit = (message: string, imageUrl?: string | null) => {
+  const handleChatSubmit = (
+    message: string,
+    imageUrl?: string | null,
+    attachmentEnabled?: boolean
+  ): void => {
     setChatMessages((prev) => [
       ...prev,
       { type: "user", text: message, imageUrl: imageUrl || undefined },
     ]);
-
-    // Derive environmentState from fields
-    const environmentState = fields.reduce((acc, field) => {
-      field.metrics.forEach((metric) => {
-        acc[metric.name.toLowerCase()] = metric.value;
-      });
-      return acc;
-    }, {} as Record<string, number>);
-
-    // Make a fetch API call to the provided URL
-    fetch("https://cors-anywhere.herokuapp.com/https://webhook.site/d68e5135-b0f0-421d-9a73-8aa33443c10e", {
+  
+    const formData = new FormData();
+    formData.append("userMessage", message);
+    formData.append("activeToggle", activeToggle);
+    formData.append("attachmentEnabled", String(attachmentEnabled)); // This controls RAG, not image
+    formData.append("fields", JSON.stringify(fields));
+  
+    // Use selectedImageFile from state
+    if (selectedImageFile) {
+      formData.append("image", selectedImageFile); // This is handled separately
+    }
+  
+    fetch("http://127.0.0.1:5000/api/agent", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        "message": "hello",
-      }),
+      body: formData,
     })
       .then((response) => {
-        if (!response.ok) {
-          throw new Error("Network response was not ok");
-        }
-        return response.text();
+        if (!response.ok) throw new Error("Network error");
+        return response.json();
       })
       .then((data) => {
-        console.log("API response:", data);
+        console.log("Agent response:", data);
+        setThinkingMessages(data.thoughtsList.map((thought: { text: string }) => thought.text) || []);
+        setToolChains((prev) => [
+          { id: prev.length + 1, tools: data.toolList.map((tool: { tool: string }) => ({ name: tool.tool, status: "completed" })) || [] },
+          ...prev,
+        ]);
+        setChatMessages((prev) => [
+          ...prev,
+          { type: "bot", text: data.finalMessage || "No response received." },
+        ]);
       })
-      .catch((error) => {
-        console.error("Error while making API call:", error);
+      .catch((err) => {
+        console.error("Error:", err);
       });
+  };
 
-    setTimeout(() => {
-      setChatMessages((prev) => [
-        ...prev,
-        {
-          type: "bot",
-          text: "I'm analyzing your message about the crops. Let me process that information and provide you with a detailed response.",
-        },
-      ]);
-
-      // Refresh the thoughts tab with new messages
-      setThinkingMessages([
-        `Processing your input: "${message}"`,
-        "Analyzing crop data...",
-        "Checking soil moisture levels...",
-        "Evaluating weather patterns...",
-        "Generating insights...",
-      ]);
-
-      // Add a new tool chain dynamically
-      setToolChains((prev) => [
-        {
-          id: prev.length + 1,
-          tools: [
-            { name: "Tool 1", status: "completed" },
-            { name: "Tool 2", status: "completed" },
-            { name: "Tool 3", status: "completed" },
-          ],
-        },
-        ...prev,
-      ]);
-    }, 500);
+  // Handler to update selected image file
+  const handleImageSelect = (file: File | null) => {
+    setSelectedImageFile(file);
   };
 
   // Handle slider change for metrics
@@ -276,7 +260,8 @@ export const Desktop = (): JSX.Element => {
                   <ChatMessages chatMessages={chatMessages} />
                 </div>
                 <div className="mt-4">
-                  <ChatInput onSubmit={handleChatSubmit} />
+                  {/* Pass handleImageSelect to ChatInput if it supports image upload */}
+                  <ChatInput onSubmit={handleChatSubmit} onImageSelect={handleImageSelect} />
                 </div>
               </div>
               
