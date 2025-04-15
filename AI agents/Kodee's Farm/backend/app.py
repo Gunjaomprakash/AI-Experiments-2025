@@ -47,10 +47,11 @@ def handle_agent_request():
     # 4. Run your AI agent logic here (updated response with timestamps)
     dummy_thoughts = [
         {"text": "Analyzing weather metrics...", "timestamp": 0},
-        {"text": "Preparing crop treatment plan.", "timestamp": 1}
+        {"text": "Preparing crop treatment plan.", "timestamp": 3}
     ]
     dummy_tools = [
-        {"tool": "trigger_irrigation", "timestamp": 2},
+        {"tool": "trigger_irrigation", "timestamp": 1},
+        {"tool": "adjust_fertilizer", "timestamp": 2},
         {"tool": "adjust_fertilizer", "timestamp": 4}
     ]
     dummy_final = "Irrigation initiated and soil health balanced for Field 1. 🌱"

@@ -2,11 +2,10 @@ import { useState, useCallback, useEffect } from "react";
 import { Slider } from "@mui/material"; // Import Material-UI Slider
 import { ChatMessages } from "../../components/chat/ChatMessages";
 import { ChatInput } from "../../components/chat/ChatInput";
-import Field  from "../../components/ui/Field";
+import Field from "../../components/ui/Field";
 import { ToolUsage } from "../../components/processing/ToolUsage";
-import { ChatMessage } from '../../types';
+import { ChatMessage } from "../../types";
 import { BsRobot } from "react-icons/bs";
-
 
 interface Metric {
   name: string;
@@ -41,7 +40,8 @@ const optimalRanges = {
 function calculateHealthScore(env: Environment): number {
   let score = 0;
   for (const [key, value] of Object.entries(env)) {
-    if (value !== undefined) { // Ensure value is not undefined
+    if (value !== undefined) {
+      // Ensure value is not undefined
       const [min, max] = optimalRanges[key as keyof typeof optimalRanges] || [];
       if (min !== undefined && max !== undefined) {
         if (value < min) score += min - value;
@@ -62,7 +62,30 @@ function getFieldColor(score: number): string {
   return "darkred"; // New step
 }
 
+const processSequentially = async (
+  items: { timestamp: number }[],
+  onItem: (item: any) => void
+) => {
+  for (const item of items) {
+    await new Promise(resolve => setTimeout(resolve, item.timestamp * 1000));
+    onItem(item);
+  }
+};
+
 export const Desktop = (): JSX.Element => {
+  // Add new state for video source and visibility
+  const [videoSource, setVideoSource] = useState<string>("/idle.mp4");
+  const [videoVisible, setVideoVisible] = useState<boolean>(true);
+
+  // Function to handle video source change with fade effect
+  const changeVideoSource = (newSource: string) => {
+    setVideoVisible(false); // Start fade-out
+    setTimeout(() => {
+      setVideoSource(newSource); // Change video source
+      setVideoVisible(true); // Start fade-in
+    }, 300); // Match the CSS transition duration
+  };
+
   // Field data with associated metrics
   const initialFields: Field[] = [
     {
@@ -118,7 +141,9 @@ export const Desktop = (): JSX.Element => {
   }, []);
 
   // Initialize fields with evaluated conditions
-  const [fields, setFields] = useState<Field[]>(() => evaluateConditions(initialFields));
+  const [fields, setFields] = useState<Field[]>(() =>
+    evaluateConditions(initialFields)
+  );
 
   useEffect(() => {
     setFields((prevFields) => evaluateConditions(prevFields)); // Re-evaluate conditions on updates
@@ -147,7 +172,7 @@ export const Desktop = (): JSX.Element => {
   ]);
 
   // State to track the active toggle button
-  const [activeToggle, setActiveToggle] = useState<'user' | 'robot'>('user');
+  const [activeToggle, setActiveToggle] = useState<"user" | "robot">("user");
 
   // Add state for selected image file
   const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
@@ -158,22 +183,30 @@ export const Desktop = (): JSX.Element => {
     imageUrl?: string | null,
     attachmentEnabled?: boolean
   ): void => {
+    // Add user message immediately
     setChatMessages((prev) => [
       ...prev,
       { type: "user", text: message, imageUrl: imageUrl || undefined },
     ]);
-  
+
+    // Clear previous state
+    setThinkingMessages([]);
+    setToolChains([]);
+
+    // Set appropriate video based on attachment mode
+    changeVideoSource(attachmentEnabled ? "/working.mp4" : "/thinking.mp4");
+
     const formData = new FormData();
     formData.append("userMessage", message);
     formData.append("activeToggle", activeToggle);
     formData.append("attachmentEnabled", String(attachmentEnabled)); // This controls RAG, not image
     formData.append("fields", JSON.stringify(fields));
-  
+
     // Use selectedImageFile from state
     if (selectedImageFile) {
       formData.append("image", selectedImageFile); // This is handled separately
     }
-  
+
     fetch("http://127.0.0.1:5000/api/agent", {
       method: "POST",
       body: formData,
@@ -182,20 +215,45 @@ export const Desktop = (): JSX.Element => {
         if (!response.ok) throw new Error("Network error");
         return response.json();
       })
-      .then((data) => {
+      .then(async (data) => {
         console.log("Agent response:", data);
-        setThinkingMessages(data.thoughtsList.map((thought: { text: string }) => thought.text) || []);
-        setToolChains((prev) => [
-          { id: prev.length + 1, tools: data.toolList.map((tool: { tool: string }) => ({ name: tool.tool, status: "completed" })) || [] },
-          ...prev,
-        ]);
+
+        // Process thoughts and tools sequentially
+        const processThoughts = async () => {
+          await processSequentially(data.thoughtsList, (thought) => {
+            setThinkingMessages((prev) => [...prev, thought.text]);
+          });
+        };
+
+        const processTools = async () => {
+          // Reset tool chains at the start
+          setToolChains([]);
+
+          // Create a single chain that will accumulate tools
+          const chain = {
+            id: 1,
+            tools: [] as { name: string; status: string }[],
+          };
+
+          await processSequentially(data.toolList, (tool) => {
+            chain.tools.push({ name: tool.tool, status: "completed" });
+            setToolChains([chain]); // Update with the current state of the chain
+          });
+        };
+
+        // Run both sequences in parallel and wait for both to complete
+        await Promise.all([processThoughts(), processTools()]);
+
+        // Add the final message and reset video to idle
         setChatMessages((prev) => [
           ...prev,
           { type: "bot", text: data.finalMessage || "No response received." },
         ]);
+        changeVideoSource("/idle.mp4");
       })
       .catch((err) => {
         console.error("Error:", err);
+        changeVideoSource("/idle.mp4"); // Reset video on error
       });
   };
 
@@ -230,11 +288,11 @@ export const Desktop = (): JSX.Element => {
         {/* Title at the top */}
         <div
           className="text-center py-4 font-bold text-4xl text-[#1b2559]"
-          style={{ fontFamily: 'Helvetica_Neue-Bold, Helvetica' }}
+          style={{ fontFamily: "Helvetica_Neue-Bold, Helvetica" }}
         >
           Kodee's Farm
         </div>
-        
+
         {/* Main layout with central divider */}
         <div className="relative h-[960px] flex">
           {/* Left side containing fields and chat */}
@@ -252,7 +310,7 @@ export const Desktop = (): JSX.Element => {
                 />
               ))}
             </div>
-            
+
             {/* Chat UI at the bottom */}
             <div className="flex-1 p-4 relative">
               <div className="h-full flex flex-col">
@@ -261,56 +319,72 @@ export const Desktop = (): JSX.Element => {
                 </div>
                 <div className="mt-4">
                   {/* Pass handleImageSelect to ChatInput if it supports image upload */}
-                  <ChatInput onSubmit={handleChatSubmit} onImageSelect={handleImageSelect} />
+                  <ChatInput
+                    onSubmit={handleChatSubmit}
+                    onImageSelect={handleImageSelect}
+                  />
                 </div>
               </div>
-              
-                {/* Mascot video and toggle button container */}
-                <div className="absolute top-4 left-4 flex flex-col items-center">
+
+              {/* Mascot video and toggle button container */}
+              <div className="absolute top-4 left-4 flex flex-col items-center">
                 {/* Mascot video */}
                 <video
-                  className="w-[80px] h-[100px] object-cover"
+                  className={`w-[80px] h-[100px] object-cover transition-opacity duration-300 ${
+                    videoVisible ? "opacity-100" : "opacity-0"
+                  }`}
                   autoPlay
                   loop
                   muted
+                  key={videoSource} // Add key to force reload when source changes
                 >
-                  <source src="/idle.mp4" type="video/mp4" />
+                  <source src={videoSource} type="video/mp4" />
                   Your browser does not support the video tag.
                 </video>
 
                 {/* Agent mode Toggle button */}
                 <button
                   className={`mt-2 p-2 rounded-full flex items-center justify-center w-10 h-10 ${
-                  activeToggle === 'robot' ? 'bg-[#30792e] text-white' : 'bg-gray-200'
+                    activeToggle === "robot"
+                      ? "bg-[#30792e] text-white"
+                      : "bg-gray-200"
                   }`}
                   title="Toggle"
-                  onClick={() => setActiveToggle(activeToggle === 'robot' ? 'user' : 'robot')}
+                  onClick={() =>
+                    setActiveToggle(activeToggle === "robot" ? "user" : "robot")
+                  }
                 >
                   <div className="relative flex items-center justify-center">
-                  <BsRobot className="text-xl" />
-                  {activeToggle === 'robot' && (
-                    <div className="absolute inset-0 border-2 border-t-transparent border-[#ffffff] rounded-full animate-spin"></div>
-                  )}
+                    <BsRobot className="text-xl" />
+                    {activeToggle === "robot" && (
+                      <div className="absolute inset-0 border-2 border-t-transparent border-[#ffffff] rounded-full animate-spin"></div>
+                    )}
                   </div>
                 </button>
-                </div>
+              </div>
             </div>
           </div>
-          
+
           {/* Central divider */}
           <div className="absolute h-full border-l-2 border-dashed border-gray-400 left-1/2"></div>
-          
+
           {/* Right side containing metrics and processing */}
           <div className="w-1/2 flex flex-col">
             {/* Environmental Metrics for each field */}
             <div className="flex-1 p-4 ">
               <div className="grid grid-rows-3 gap-4">
                 {fields.map((field) => (
-                  <div key={field.id} className="p-4 border rounded-lg shadow-sm">
+                  <div
+                    key={field.id}
+                    className="p-4 border rounded-lg shadow-sm"
+                  >
                     <div className="font-bold text-lg mb-2">{field.name}</div>
                     <div className="grid grid-cols-6 gap-4">
                       {field.metrics.map((metric, metricIndex) => (
-                        <div key={metricIndex} className="flex flex-col items-center">
+                        <div
+                          key={metricIndex}
+                          className="flex flex-col items-center"
+                        >
                           {/* Metric Name */}
                           <div className="text-sm font-medium text-gray-700">
                             {metric.name}
@@ -321,15 +395,21 @@ export const Desktop = (): JSX.Element => {
                             min={0}
                             max={100}
                             onChange={(_, newValue) =>
-                              handleMetricChange(field.id, metricIndex, newValue as number)
+                              handleMetricChange(
+                                field.id,
+                                metricIndex,
+                                newValue as number
+                              )
                             }
                             sx={{
-                              color: "#30792e", 
+                              color: "#30792e",
                               width: "100%",
                             }}
                           />
                           {/* Metric Value */}
-                          <div className="text-xs mt-1 text-gray-500">{metric.value}%</div>
+                          <div className="text-xs mt-1 text-gray-500">
+                            {metric.value}%
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -337,15 +417,19 @@ export const Desktop = (): JSX.Element => {
                 ))}
               </div>
             </div>
-            
+
             {/* Thoughts and Tool Usage at the bottom */}
             <div className="flex-1 p-4 grid grid-rows-2 gap-6">
               {/* Thoughts Section */}
-              <div 
+              <div
                 className="border border-gray-300 rounded-lg p-4"
-                style={{ maxHeight: "200px", overflowY: "auto", boxSizing: "border-box" }} // Ensure content fits within the container
+                style={{
+                  maxHeight: "200px",
+                  overflowY: "auto",
+                  boxSizing: "border-box",
+                }} // Ensure content fits within the container
               >
-                <div 
+                <div
                   className="font-medium text-[#1b2559] text-base mb-4"
                   style={{
                     fontFamily: "Helvetica_Neue-Medium, Helvetica",
@@ -363,13 +447,13 @@ export const Desktop = (): JSX.Element => {
                   ))}
                 </div>
               </div>
-              
+
               {/* Tool Usage Section */}
-              <div 
+              <div
                 className="border border-gray-300 rounded-lg p-4"
                 style={{ maxHeight: "200px", overflowY: "auto" }} // Limit height and enable scrolling
               >
-                <div 
+                <div
                   className="font-medium text-[#1b2559] text-base mb-4"
                   style={{
                     fontFamily: "Helvetica_Neue-Medium, Helvetica",
