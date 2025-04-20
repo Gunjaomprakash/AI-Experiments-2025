@@ -62,12 +62,23 @@ function getFieldColor(score: number): string {
   return "darkred"; // New step
 }
 
-const processSequentially = async (
-  items: { timestamp: number }[],
-  onItem: (item: any) => void
-) => {
-  for (const item of items) {
-    await new Promise(resolve => setTimeout(resolve, item.timestamp * 1000));
+// const processSequentially = async (
+//   items: { timestamp: number }[],
+//   onItem: (item: any) => void
+// ) => {
+//   for (const item of items) {
+//     await new Promise(resolve => setTimeout(resolve, item.timestamp * 50));
+//     onItem(item);
+//   }
+// };
+
+const processSequentially = async (items: { timestamp: number }[] , onItem: (item: any) => void) => {
+  // Sort items by timestamp
+  const sortedItems = [...items].sort((a, b) => a.timestamp - b.timestamp);
+
+  // Sequential replay with 0.5s delay
+  for (const item of sortedItems) {
+    await new Promise((resolve) => setTimeout(resolve, 500)); // 500 ms = 0.5 sec
     onItem(item);
   }
 };
@@ -94,7 +105,7 @@ export const Desktop = (): JSX.Element => {
       metrics: [
         { name: "temperature", value: 80 },
         { name: "humidity", value: 20 },
-        { name: "Rain Forecast", value: 20 },
+        { name: "Rain Forecast", value: 60 },
         { name: "Soil Fertility", value: 80 },
         { name: "Heat Wave", value: 50 },
         { name: "Disease", value: 50 },
@@ -109,7 +120,7 @@ export const Desktop = (): JSX.Element => {
         { name: "Humidity", value: 75 },
         { name: "Rain Forecast", value: 60 },
         { name: "Soil Fertility", value: 85 },
-        { name: "Heat Wave", value: 55 },
+        { name: "Heat Wave", value: 50 },
         { name: "Disease", value: 45 },
       ],
       color: "#30792e", // Default color
@@ -120,9 +131,9 @@ export const Desktop = (): JSX.Element => {
       metrics: [
         { name: "Temperature", value: 65 },
         { name: "Humidity", value: 78 },
-        { name: "Rain Forecast", value: 70 },
+        { name: "Rain Forecast", value: 60 },
         { name: "Soil Fertility", value: 90 },
-        { name: "Heat Wave", value: 60 },
+        { name: "Heat Wave", value: 50 },
         { name: "Disease", value: 40 },
       ],
       color: "#30792e", // Default color
@@ -155,21 +166,10 @@ export const Desktop = (): JSX.Element => {
   ]);
 
   // Thinking messages state
-  const [thinkingMessages, setThinkingMessages] = useState([
-    "Processing: hi",
-    "Analyzing crop data...",
-  ]);
+  const [thinkingMessages, setThinkingMessages] = useState<string[]>([]); // Explicitly define the type as an array of strings
 
   // Tool usage state
-  const [toolChains, setToolChains] = useState([
-    {
-      id: 1,
-      tools: [
-        { name: "Weather API", status: "completed" },
-        { name: "Soil Analysis", status: "completed" },
-      ],
-    },
-  ]);
+  const [toolChains, setToolChains] = useState<{ id: number; tools: { name: string; status: string }[] }[]>([]);
 
   // State to track the active toggle button
   const [activeToggle, setActiveToggle] = useState<"user" | "robot">("user");
@@ -236,7 +236,8 @@ export const Desktop = (): JSX.Element => {
           };
 
           await processSequentially(data.toolList, (tool) => {
-            chain.tools.push({ name: tool.tool, status: "completed" });
+            const toolName = tool.tool.replace("default_api.", ""); // Remove 'default_api.' if present
+            chain.tools.push({ name: toolName, status: "completed" });
             setToolChains([chain]); // Update with the current state of the chain
           });
         };
@@ -244,12 +245,15 @@ export const Desktop = (): JSX.Element => {
         // Run both sequences in parallel and wait for both to complete
         await Promise.all([processThoughts(), processTools()]);
 
-        // Add the final message and reset video to idle
+        // Add the final message and reset video to dance.mp4 temporarily
         setChatMessages((prev) => [
           ...prev,
           { type: "bot", text: data.finalMessage || "No response received." },
         ]);
-        changeVideoSource("/idle.mp4");
+        changeVideoSource("/dance.mp4"); // Play dance.mp4
+        setTimeout(() => {
+          changeVideoSource("/idle.mp4"); // Reset to idle.mp4 after a few seconds
+        }, 3000); // 3 seconds delay
       })
       .catch((err) => {
         console.error("Error:", err);
@@ -260,22 +264,43 @@ export const Desktop = (): JSX.Element => {
   // Handler to update selected image file
   const handleImageSelect = (file: File | null) => {
     setSelectedImageFile(file);
+    if (file) {
+      // Reset the input value to allow re-uploading the same file
+      const inputElement = document.querySelector('input[type="file"]') as HTMLInputElement;
+      if (inputElement) {
+        inputElement.value = "";
+      }
+    }
   };
 
   // Handle slider change for metrics
   const handleMetricChange = useCallback(
     (fieldId: number, metricIndex: number, newValue: number) => {
       setFields((prevFields) => {
-        const updatedFields = prevFields.map((field) =>
-          field.id === fieldId
-            ? {
+        const updatedFields = prevFields.map((field) => {
+          if (field.id === fieldId) {
+            return {
+              ...field,
+              metrics: field.metrics.map((metric, i) =>
+                i === metricIndex ? { ...metric, value: newValue } : metric
+              ),
+            };
+          } else {
+            // Synchronize Rain Forecast and Heat Wave across all fields
+            const metricName = prevFields[fieldId - 1].metrics[metricIndex].name.toLowerCase();
+            if (metricName === "rain forecast" || metricName === "heat wave") {
+              return {
                 ...field,
-                metrics: field.metrics.map((metric, i) =>
-                  i === metricIndex ? { ...metric, value: newValue } : metric
+                metrics: field.metrics.map((metric) =>
+                  metric.name.toLowerCase() === metricName
+                    ? { ...metric, value: newValue }
+                    : metric
                 ),
-              }
-            : field
-        );
+              };
+            }
+          }
+          return field;
+        });
         return evaluateConditions(updatedFields); // Re-evaluate conditions after updating metrics
       });
     },

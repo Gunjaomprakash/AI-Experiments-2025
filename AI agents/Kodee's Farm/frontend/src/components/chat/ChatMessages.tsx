@@ -1,7 +1,6 @@
 import React, { useRef, useEffect } from 'react';
 import { Card, CardContent } from '../ui/card';
 import { ChatMessage } from '../../types';
-import { PiBird } from "react-icons/pi";
 
 interface ChatMessagesProps {
   chatMessages: ChatMessage[];
@@ -32,11 +31,6 @@ export const ChatMessages: React.FC<ChatMessagesProps> = ({ chatMessages }) => {
             message.type === 'user' ? 'justify-end' : 'justify-start'
           }`}
         >
-          {message.type === 'bot' && (
-            <div className="w-10 h-10 mr-2 bg-[#30792f] rounded-[20px] flex items-center justify-center flex-shrink-0">
-              <PiBird className="text-white w-6 h-6" />
-            </div>
-          )}
           <Card
             className={`${
               message.type === 'user'
