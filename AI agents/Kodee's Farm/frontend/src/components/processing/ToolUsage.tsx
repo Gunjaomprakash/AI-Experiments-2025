@@ -15,9 +15,15 @@ interface ToolUsageProps {
 }
 
 export const ToolUsage: React.FC<ToolUsageProps> = ({ toolChains }) => {
+  // Filter out record_execution tools that are just for thoughts
+  const filteredToolChains = toolChains.map((chain) => ({
+    ...chain,
+    tools: chain.tools.filter((tool) => tool.name !== "record_execution")
+  }));
+
   return (
     <div className="bg-white p-2 rounded-lg">
-      {toolChains.map((chain) => (
+      {filteredToolChains.map((chain) => (
         <div key={chain.id} className="mb-4">
           <div className="flex items-center flex-wrap gap-2">
             {chain.tools.map((tool, index) => (
@@ -37,6 +43,9 @@ export const ToolUsage: React.FC<ToolUsageProps> = ({ toolChains }) => {
           </div>
         </div>
       ))}
+      {filteredToolChains.every(chain => chain.tools.length === 0) && (
+        <div className="text-gray-500 italic text-sm">No tools used yet</div>
+      )}
     </div>
   );
 };

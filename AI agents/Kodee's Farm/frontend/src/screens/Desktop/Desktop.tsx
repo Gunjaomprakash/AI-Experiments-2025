@@ -30,22 +30,31 @@ interface Environment {
 
 const optimalRanges = {
   temperature: [60, 80],
-  humidity: [40, 100],
+  humidity: [40, 70],
   rain_forecast: [20, 80],
   soil_fertility: [60, 100],
   heat_wave: [0, 40],
-  disease: [0, 30],
+  disease: [0, 25],
 };
 
 function calculateHealthScore(env: Environment): number {
   let score = 0;
+  const weights = {
+    temperature: 1.2,
+    humidity: 1.2,
+    soil_fertility: 1.5,
+    disease: 2.0,
+    heat_wave: 0.8,
+    rain_forecast: 0.8,
+  };
+  
   for (const [key, value] of Object.entries(env)) {
     if (value !== undefined) {
-      // Ensure value is not undefined
       const [min, max] = optimalRanges[key as keyof typeof optimalRanges] || [];
       if (min !== undefined && max !== undefined) {
-        if (value < min) score += min - value;
-        else if (value > max) score += value - max;
+        const weight = weights[key as keyof typeof weights] || 1.0;
+        if (value < min) score += (min - value) * weight;
+        else if (value > max) score += (value - max) * weight;
       }
     }
   }
@@ -53,30 +62,24 @@ function calculateHealthScore(env: Environment): number {
 }
 
 function getFieldColor(score: number): string {
-  if (score < 20) return "green";
-  if (score < 30) return "yellow";
-  if (score < 40) return "lightorange"; // New step
-  if (score < 50) return "orange";
-  if (score < 60) return "darkorange"; // New step
-  if (score < 70) return "red";
-  return "darkred"; // New step
+  if (score < 15) return "#008000"; // Healthy green
+  if (score < 25) return "#90EE90"; // Light green
+  if (score < 35) return "#FFFF00"; // Yellow
+  if (score < 45) return "#FFA500"; // Orange
+  if (score < 55) return "#FF4500"; // Orange red
+  if (score < 65) return "#FF0000"; // Red
+  if (score < 75) return "#8B0000"; // Dark red
+  return "#800080"; // Purple (severely unhealthy)
 }
 
-// const processSequentially = async (
-//   items: { timestamp: number }[],
-//   onItem: (item: any) => void
-// ) => {
-//   for (const item of items) {
-//     await new Promise(resolve => setTimeout(resolve, item.timestamp * 50));
-//     onItem(item);
-//   }
-// };
-
-const processSequentially = async (items: { timestamp: number }[] , onItem: (item: any) => void) => {
+const processSequentially = async (
+  items: { timestamp: number }[],
+  onItem: (item: any) => void
+) => {
   // Sort items by timestamp
   const sortedItems = [...items].sort((a, b) => a.timestamp - b.timestamp);
 
-  // Sequential replay with 0.5s delay
+  // Sequential replay with delay
   for (const item of sortedItems) {
     await new Promise((resolve) => setTimeout(resolve, 500)); // 500 ms = 0.5 sec
     onItem(item);
@@ -160,6 +163,67 @@ export const Desktop = (): JSX.Element => {
     setFields((prevFields) => evaluateConditions(prevFields)); // Re-evaluate conditions on updates
   }, [evaluateConditions]);
 
+  // Process field snapshots sequentially
+  const processFieldSnapshots = async (snapshots: any[]) => {
+    if (!snapshots || snapshots.length === 0) {
+      console.log("No field snapshots to process");
+      return;
+    }
+    
+    console.log("Processing field snapshots:", snapshots);
+    
+    // Sort snapshots by timestamp
+    const sortedSnapshots = [...snapshots].sort((a, b) => a.timestamp - b.timestamp);
+    
+    for (const snapshot of sortedSnapshots) {
+      // Wait before applying the next snapshot
+      await new Promise((resolve) => setTimeout(resolve, 800));
+      
+      console.log("Processing snapshot:", snapshot);
+      
+      // Check if snapshot has the expected structure
+      if (!snapshot || !snapshot.fields) {
+        console.warn("Invalid snapshot format:", snapshot);
+        continue;
+      }
+      
+      try {
+        console.log(`Applying snapshot at timestamp ${snapshot.timestamp}:`, snapshot.fields);
+        
+        // Update the fields with the new metrics
+        setFields((prevFields: Field[]) => {
+          // Create a new array of fields with updated metrics
+          const updatedFields = prevFields.map((currentField: Field) => {
+            // Find the corresponding field in the snapshot
+            const snapshotField = snapshot.fields.find((f: any) => f.id === currentField.id);
+            
+            if (snapshotField && snapshotField.metrics && snapshotField.metrics.length > 0) {
+              // Create a mapping of metric names to values from the snapshot
+              const metricMap = new Map<string, number>();
+              snapshotField.metrics.forEach((metric: any) => {
+                metricMap.set(metric.name.toLowerCase(), metric.value);
+              });
+              
+              // Update the metrics in the current field
+              return {
+                ...currentField,
+                metrics: currentField.metrics.map(metric => {
+                  const newValue = metricMap.get(metric.name.toLowerCase());
+                  return newValue !== undefined ? { ...metric, value: newValue } : metric;
+                })
+              };
+            }
+            return currentField;
+          });
+          
+          return evaluateConditions(updatedFields);
+        });
+      } catch (error) {
+        console.error("Error processing field snapshot:", error);
+      }
+    }
+  };
+
   // Chat state
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
     { type: "bot", text: "Hello! How can I help you with your crops today?" },
@@ -217,6 +281,7 @@ export const Desktop = (): JSX.Element => {
       })
       .then(async (data) => {
         console.log("Agent response:", data);
+        console.log("Field snapshots:", data.fieldsSnapshots); // Debug log to see the snapshots structure
 
         // Process thoughts and tools sequentially
         const processThoughts = async () => {
@@ -244,6 +309,13 @@ export const Desktop = (): JSX.Element => {
 
         // Run both sequences in parallel and wait for both to complete
         await Promise.all([processThoughts(), processTools()]);
+        
+        // Process field snapshots after thoughts and tools
+        if (data.fieldsSnapshots && data.fieldsSnapshots.length > 0) {
+          await processFieldSnapshots(data.fieldsSnapshots);
+        } else {
+          console.log("No field snapshots available");
+        }
 
         // Add the final message and reset video to dance.mp4 temporarily
         setChatMessages((prev) => [

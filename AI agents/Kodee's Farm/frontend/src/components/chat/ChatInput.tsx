@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { GoFileSymlinkFile } from "react-icons/go";
 import { ImUpload } from "react-icons/im";
 import { IoSend } from "react-icons/io5";
@@ -12,6 +12,39 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onSubmit, onImageSelect })
   const [message, setMessage] = useState("");
   const [attachmentEnabled, setAttachmentEnabled] = useState(false);
   const [uploadedImage, setUploadedImage] = useState<File | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Handle paste events
+  useEffect(() => {
+    const handlePaste = (e: ClipboardEvent) => {
+      const items = e.clipboardData?.items;
+      if (!items) return;
+
+      for (let i = 0; i < items.length; i++) {
+        if (items[i].type.indexOf("image") !== -1) {
+          const file = items[i].getAsFile();
+          if (file) {
+            console.log("Image pasted:", file.name);
+            setUploadedImage(file);
+            if (onImageSelect) {
+              onImageSelect(file);
+            }
+            // Prevent the default paste behavior for images
+            e.preventDefault();
+            break;
+          }
+        }
+      }
+    };
+
+    // Add the event listener to the document
+    document.addEventListener("paste", handlePaste);
+
+    // Clean up
+    return () => {
+      document.removeEventListener("paste", handlePaste);
+    };
+  }, [onImageSelect]);
 
   const handleSend = () => {
     if (message.trim() !== "" || uploadedImage) {
@@ -31,12 +64,20 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onSubmit, onImageSelect })
     console.log("Image uploaded:", file?.name); // Log the file name for debugging
   };
 
+  // Handle key press events (Enter to send)
+  const handleKeyPress = (event: React.KeyboardEvent) => {
+    if (event.key === "Enter" && !event.shiftKey) {
+      event.preventDefault();
+      handleSend();
+    }
+  };
+
   return (
     <div className="flex flex-col space-y-2">
       {/* Image Upload Indicator */}
       {uploadedImage && (
         <div className="text-sm text-green-600 font-medium">
-          <ImUpload className="inline-block mr-1" /> {uploadedImage.name}
+          <ImUpload className="inline-block mr-1" /> {uploadedImage.name || "Pasted image"}
         </div>
       )}
 
@@ -70,11 +111,13 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onSubmit, onImageSelect })
 
         {/* Input Field */}
         <input
+          ref={inputRef}
           type="text"
           className="flex-1 border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-500"
-          placeholder="Help me with..."
+          placeholder="Type or paste an image here..."
           value={message}
           onChange={(e) => setMessage(e.target.value)}
+          onKeyPress={handleKeyPress}
         />
 
         {/* Send Button */}

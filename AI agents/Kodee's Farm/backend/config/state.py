@@ -47,16 +47,24 @@ def update_fields(new_fields: list):
     fields.extend(copy.deepcopy(new_fields))
     # print(f"Updated fields: {fields}")
 
-def snapshot_fields():
+def snapshot_fields(timestamp=None):
     """
     Takes a snapshot of the current field states.
+    
+    Args:
+        timestamp (float, optional): The timestamp to use for this snapshot.
+                                     If None, the current elapsed time will be used.
     """
     print("Taking a snapshot of the current field states.")
     global field_snapshots, fields, simulation_start_time
-    current_time = time.time()
-    elapsed_time = round(current_time - simulation_start_time, 2)
+    
+    if timestamp is None:
+        current_time = time.time()
+        timestamp = round(current_time - simulation_start_time, 2)
+        
     field_snapshots.append({
         "fields": copy.deepcopy(fields),
-        "timestamp": elapsed_time
+        "timestamp": timestamp
     })
-    print(f"Snapshot taken at {elapsed_time} seconds: {field_snapshots[-1]}")
+    
+    print(f"Snapshot taken at {timestamp} seconds: {field_snapshots[-1]}")
