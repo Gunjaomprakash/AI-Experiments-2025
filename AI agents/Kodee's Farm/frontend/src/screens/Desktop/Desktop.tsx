@@ -281,40 +281,118 @@ export const Desktop = (): JSX.Element => {
       })
       .then(async (data) => {
         console.log("Agent response:", data);
-        console.log("Field snapshots:", data.fieldsSnapshots); // Debug log to see the snapshots structure
+        console.log("Field snapshots:", data.fieldsSnapshots); 
 
-        // Process thoughts and tools sequentially
-        const processThoughts = async () => {
-          await processSequentially(data.thoughtsList, (thought) => {
-            setThinkingMessages((prev) => [...prev, thought.text]);
-          });
-        };
-
-        const processTools = async () => {
-          // Reset tool chains at the start
-          setToolChains([]);
-
-          // Create a single chain that will accumulate tools
-          const chain = {
-            id: 1,
-            tools: [] as { name: string; status: string }[],
-          };
-
-          await processSequentially(data.toolList, (tool) => {
-            const toolName = tool.tool.replace("default_api.", ""); // Remove 'default_api.' if present
-            chain.tools.push({ name: toolName, status: "completed" });
-            setToolChains([chain]); // Update with the current state of the chain
-          });
-        };
-
-        // Run both sequences in parallel and wait for both to complete
-        await Promise.all([processThoughts(), processTools()]);
+        // Create an integrated timeline of all events (thoughts, tools, and field changes)
+        let integratedTimeline: {type: string; data: any; timestamp: number}[] = [];
         
-        // Process field snapshots after thoughts and tools
+        // Add thoughts to timeline
+        if (data.thoughtsList && data.thoughtsList.length > 0) {
+          integratedTimeline = [
+            ...integratedTimeline,
+            ...data.thoughtsList.map((thought: any) => ({
+              type: "thought",
+              data: thought,
+              timestamp: thought.timestamp
+            }))
+          ];
+        }
+        
+        // Add tools to timeline
+        if (data.toolList && data.toolList.length > 0) {
+          integratedTimeline = [
+            ...integratedTimeline,
+            ...data.toolList.map((tool: any) => ({
+              type: "tool",
+              data: tool,
+              timestamp: tool.timestamp
+            }))
+          ];
+        }
+        
+        // Add field snapshots to timeline
         if (data.fieldsSnapshots && data.fieldsSnapshots.length > 0) {
-          await processFieldSnapshots(data.fieldsSnapshots);
-        } else {
-          console.log("No field snapshots available");
+          integratedTimeline = [
+            ...integratedTimeline,
+            ...data.fieldsSnapshots.map((snapshot: any) => ({
+              type: "snapshot",
+              data: snapshot,
+              timestamp: snapshot.timestamp
+            }))
+          ];
+        }
+
+        // Sort the integrated timeline by timestamp
+        integratedTimeline.sort((a, b) => a.timestamp - b.timestamp);
+        
+        console.log("Integrated timeline:", integratedTimeline);
+        
+        // Process the integrated timeline sequentially
+        for (const event of integratedTimeline) {
+          // Add a small delay between events
+          await new Promise((resolve) => setTimeout(resolve, 500));
+          
+          switch(event.type) {
+            case "thought":
+              setThinkingMessages((prev) => [...prev, event.data.text]);
+              break;
+              
+            case "tool":
+              // Update tool chains
+              setToolChains((prev) => {
+                let chain = prev[0] || { id: 1, tools: [] };
+                const toolName = event.data.tool.replace("default_api.", "");
+                
+                // Only add tool if it's not record_execution
+                if (toolName !== "record_execution") {
+                  chain = {
+                    ...chain,
+                    tools: [...chain.tools, { name: toolName, status: "completed" }]
+                  };
+                }
+                
+                return [chain];
+              });
+              break;
+              
+            case "snapshot":
+              // Apply field snapshot
+              try {
+                const snapshot = event.data;
+                if (snapshot && snapshot.fields) {
+                  setFields((prevFields: Field[]) => {
+                    // Create a new array of fields with updated metrics
+                    const updatedFields = prevFields.map((currentField: Field) => {
+                      // Find the corresponding field in the snapshot
+                      const snapshotField = snapshot.fields.find((f: any) => f.id === currentField.id);
+                      
+                      if (snapshotField && snapshotField.metrics && snapshotField.metrics.length > 0) {
+                        // Create a mapping of metric names to values from the snapshot
+                        const metricMap = new Map<string, number>();
+                        snapshotField.metrics.forEach((metric: any) => {
+                          metricMap.set(metric.name.toLowerCase(), metric.value);
+                        });
+                        
+                        // Update the metrics in the current field
+                        return {
+                          ...currentField,
+                          metrics: currentField.metrics.map(metric => {
+                            const newValue = metricMap.get(metric.name.toLowerCase());
+                            return newValue !== undefined ? { ...metric, value: newValue } : metric;
+                          })
+                        };
+                      }
+                      return currentField;
+                    });
+                    
+                    return evaluateConditions(updatedFields);
+                  });
+                }
+              } catch (error) {
+                console.error("Error processing field snapshot:", error);
+              }
+              break;
+          }
         }
 
         // Add the final message and reset video to dance.mp4 temporarily

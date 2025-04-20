@@ -25,6 +25,8 @@ from .tools.tools import (
     emergency_cooling,
     humidify_field,
     soil_recovery_treatment,
+    organic_treatment,     # New tool added
+    rainwater_harvesting,  # New tool added
 )
 
 from .tools.ext_tools import (
@@ -113,6 +115,8 @@ def handle_agent_request():
             humidify_field,
             google_search,
             soil_recovery_treatment,
+            organic_treatment,     # New tool added
+            rainwater_harvesting,  # New tool added
         ],
         "temperature": 0.2,
         "system_instruction": system_instruction,

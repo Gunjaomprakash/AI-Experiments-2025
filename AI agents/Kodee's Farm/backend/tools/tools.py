@@ -64,7 +64,7 @@ def modify_field_metrics(field_id, updates):
 
 def start_irrigation(field_id: int) -> dict:
     """
-    Starts irrigation for the specified field and updates its metrics.
+    Waters the field to increase soil moisture and humidity. Great for drought conditions.
 
     Args:
         field_id (int): The ID of the field to irrigate.
@@ -74,101 +74,169 @@ def start_irrigation(field_id: int) -> dict:
     """
     _record_tool_usage("start_irrigation")
     print(f"[DEBUG] start_irrigation called for field {field_id}")
-    updates = {"temperature": -2, "humidity": +5, "soil fertility": 10}
+    updates = {
+        "humidity": +15,        # Significant humidity increase
+        "temperature": -5,      # Cooling effect
+        "soil fertility": +5    # Slight fertility boost from water nutrients
+    }
     modify_field_metrics(field_id, updates)
     return fields
 
 def toggle_shade(field_id: int):
     """
-    Toggles shade for the specified field and updates its metrics.
-
+    Deploys shade structures to protect crops from excessive heat and sun exposure.
+    
     Args:
-        field_id (int): The ID of the field to toggle shade.
+        field_id (int): The ID of the field to add shade.
     """
     _record_tool_usage("toggle_shade")
     print(f"[DEBUG] toggle_shade called for field {field_id}")
-    updates = {"temperature": -10, "humidity": -5, "soil fertility": 3}
+    updates = {
+        "temperature": -15,     # Major temperature reduction
+        "humidity": +5,         # Slight humidity increase from reduced evaporation
+        "heat wave": -10        # Reduced heat wave impact
+    }
     modify_field_metrics(field_id, updates)
     return fields
 
 def trigger_fungicide_spray(field_id: int):
     """
-    Triggers a fungicide spray for the specified field and updates its metrics.
+    Applies fungicide to treat and prevent fungal diseases in crops.
+    Very effective against disease but may impact soil health slightly.
 
     Args:
         field_id (int): The ID of the field to spray fungicide.
     """
     _record_tool_usage("trigger_fungicide_spray")
     print(f"[DEBUG] trigger_fungicide_spray called for field {field_id}")
-    updates = {"disease": -20, "soil fertility": -5}
+    updates = {
+        "disease": -25,        # Major disease reduction 
+        "soil fertility": -5    # Slight negative impact on soil microbiome
+    }
     modify_field_metrics(field_id, updates)
     return fields
 
 def boost_fertilizer(field_id: int):
     """
-    Boosts fertilizer for the specified field and updates its metrics.
+    Applies balanced fertilizer to significantly improve soil fertility.
+    The gold standard for poor soil conditions.
 
     Args:
-        field_id (int): The ID of the field to boost fertilizer.
+        field_id (int): The ID of the field to fertilize.
     """
     _record_tool_usage("boost_fertilizer")
     print(f"[DEBUG] boost_fertilizer called for field {field_id}")
-    updates = {"soil fertility": 20, "disease": 3}
+    updates = {
+        "soil fertility": +30,  # Major fertility boost
+        "disease": +5           # Slight disease increase (over-fertilization risk)
+    }
     modify_field_metrics(field_id, updates)
     return fields
 
 def trigger_pesticide_spray(field_id: int):
     """
-    Triggers a pesticide spray for the specified field and updates its metrics.
+    Applies pesticide to control insect pests that damage crops.
+    Reduces disease risk from pest vectors but affects soil health.
 
     Args:
         field_id (int): The ID of the field to spray pesticide.
     """
     _record_tool_usage("trigger_pesticide_spray")
     print(f"[DEBUG] trigger_pesticide_spray called for field {field_id}")
-    updates = {"disease": -10, "soil fertility": -2}
+    updates = {
+        "disease": -15,         # Good disease reduction from pest control
+        "soil fertility": -10   # Moderate negative impact on soil health
+    }
     modify_field_metrics(field_id, updates)
     return fields
 
 def emergency_cooling(field_id: int):
     """
-    Applies emergency cooling to the specified field and updates its metrics.
+    Activates emergency cooling systems like misters and fans.
+    The most effective solution for extreme heat conditions.
 
     Args:
         field_id (int): The ID of the field to cool.
     """
     _record_tool_usage("emergency_cooling")
     print(f"[DEBUG] emergency_cooling called for field {field_id}")
-    updates = {"temperature": -8, "humidity": 10}
+    updates = {
+        "temperature": -20,     # Dramatic temperature reduction
+        "humidity": +10,        # Moderate humidity increase
+        "heat wave": -20        # Major heat wave mitigation
+    }
     modify_field_metrics(field_id, updates)
     return fields
 
 def humidify_field(field_id: int):
     """
-    Humidifies the specified field and updates its metrics.
+    Increases field humidity using specialized misting systems.
+    Perfect for dry conditions affecting crop growth.
 
     Args:
         field_id (int): The ID of the field to humidify.
     """
     _record_tool_usage("humidify_field")
     print(f"[DEBUG] humidify_field called for field {field_id}")
-    updates = {"humidity": 15, "temperature": -1}
+    updates = {
+        "humidity": +25,        # Major humidity increase
+        "temperature": -5       # Slight cooling effect
+    }
     modify_field_metrics(field_id, updates)
     return fields
 
 def soil_recovery_treatment(field_id: int):
     """
-    Applies soil recovery treatment to the specified field and updates its metrics.
+    Applies comprehensive soil treatment including organic matter, beneficial microbes, and soil conditioners.
+    The best option for both improving soil fertility and fighting disease.
 
     Args:
         field_id (int): The ID of the field to treat.
     """
     _record_tool_usage("soil_recovery_treatment")
     print(f"[DEBUG] soil_recovery_treatment called for field {field_id}")
-    updates = {"soil fertility": 25, "disease": -10}
+    updates = {
+        "soil fertility": +25,  # Major fertility improvement
+        "disease": -15          # Significant disease reduction through beneficial microbes
+    }
     modify_field_metrics(field_id, updates)
     return fields
 
+def organic_treatment(field_id: int):
+    """
+    Applies organic farming treatments (compost tea, beneficial insects, plant-based sprays).
+    Balanced improvement across multiple metrics without negative side effects.
+
+    Args:
+        field_id (int): The ID of the field for organic treatment.
+    """
+    _record_tool_usage("organic_treatment")
+    print(f"[DEBUG] organic_treatment called for field {field_id}")
+    updates = {
+        "soil fertility": +15,  # Good fertility improvement
+        "disease": -10,         # Moderate disease reduction
+        "humidity": +5          # Slight humidity improvement from mulching
+    }
+    modify_field_metrics(field_id, updates)
+    return fields
+
+def rainwater_harvesting(field_id: int):
+    """
+    Uses collected rainwater for sustainable irrigation, particularly effective during low rain forecasts.
+    Provides moisture without affecting temperature significantly.
+
+    Args:
+        field_id (int): The ID of the field to apply rainwater to.
+    """
+    _record_tool_usage("rainwater_harvesting")
+    print(f"[DEBUG] rainwater_harvesting called for field {field_id}")
+    updates = {
+        "humidity": +20,        # Major humidity increase
+        "soil fertility": +5,   # Slight fertility boost from natural minerals in rainwater
+        "rain forecast": -10    # Reduces impact of low rain forecast
+    }
+    modify_field_metrics(field_id, updates)
+    return fields
 
 def record_execution(reason: str , tool_name: str ):
     """

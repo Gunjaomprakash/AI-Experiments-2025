@@ -85,13 +85,13 @@ def google_search(query: str) -> dict:
         temperature=0.4
     )
     prompt = (
-    f"You are an expert research assistant. "
-    f"Search the web and provide a concise, up-to-date, and structured answer for the following query. "
-    f"Always include the most recent data available (preferably 2024 or 2025), relevant statistics, and cite your sources if possible. "
-    f"If the answer is not directly available, explain what is missing and suggest how the user might find it. "
-    f"Return your answer as a short summary "
-    f"Query: {query}"
-)
+        f"You are an expert research assistant. "
+        f"Search the web and provide a concise, up-to-date, and structured answer for the following query. "
+        f"Always include the most recent data available (preferably 2024 or 2025), relevant statistics, and cite your sources if possible. "
+        f"Return your answer in a way that another AI agent can easily extract key facts and use them for further reasoning or decision-making. "
+        f"Clearly separate your findings, sources, and any recommendations. "
+        f"Query: {query}"
+    )
     response = client.models.generate_content(
         model="gemini-2.0-flash",
         contents=prompt,

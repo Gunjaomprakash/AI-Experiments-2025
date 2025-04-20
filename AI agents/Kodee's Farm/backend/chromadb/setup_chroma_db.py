@@ -7,6 +7,8 @@ from google.genai import types
 from google.api_core import retry
 import json
 import os
+# Import the tool usage recorder
+from ..tools.tools import _record_tool_usage
 
 # Retry wrapper for Gemini API calls
 is_retriable = lambda e: (isinstance(e, genai.errors.APIError) and e.code in {429, 503})
@@ -79,7 +81,9 @@ QUESTION: {query_oneline}
 
 def queryKodeeMemories(user_query: str):
     result = db.query(query_texts=[user_query], n_results=3)
+    _record_tool_usage("queryKodeeMemories")
     return result["documents"]
+
 
 # Expose db object too
 __all__ = ["db", "query_kodee_memory", "queryKodeeMemories"]
