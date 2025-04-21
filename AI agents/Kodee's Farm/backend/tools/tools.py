@@ -177,7 +177,6 @@ def humidify_field(field_id: int):
         field_id (int): The ID of the field to humidify.
     """
     _record_tool_usage("humidify_field")
-    print(f"[DEBUG] humidify_field called for field {field_id}")
     updates = {
         "humidity": +25,        # Major humidity increase
         "temperature": -5       # Slight cooling effect

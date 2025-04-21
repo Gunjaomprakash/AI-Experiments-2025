@@ -86,6 +86,16 @@ const processSequentially = async (
   }
 };
 
+// Helper function to clean agent responses
+const cleanAgentResponse = (message: string): string => {
+  // Check for the specific prefix and remove it if found
+  const prefix = "Response (no formatted final message found):";
+  if (message.startsWith(prefix)) {
+    return message.substring(prefix.length).trim();
+  }
+  return message;
+};
+
 export const Desktop = (): JSX.Element => {
   // Add new state for video source and visibility
   const [videoSource, setVideoSource] = useState<string>("/idle.mp4");
@@ -398,7 +408,7 @@ export const Desktop = (): JSX.Element => {
         // Add the final message and reset video to dance.mp4 temporarily
         setChatMessages((prev) => [
           ...prev,
-          { type: "bot", text: data.finalMessage || "No response received." },
+          { type: "bot", text: cleanAgentResponse(data.finalMessage || "No response received.") },
         ]);
         changeVideoSource("/dance.mp4"); // Play dance.mp4
         setTimeout(() => {
