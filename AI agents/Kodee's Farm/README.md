@@ -17,7 +17,7 @@ Kodee's Farm is an AI-powered farming assistant designed to provide agricultural
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/Gunjaomprakash/AI-Experiments-2025/tree/main/AI%20agents/Kodee's%20Farm-git
+   git clone https://github.com/Gunjaomprakash/AI-Experiments-2025.git
    ```
 
 2. Navigate to the backend directory and install dependencies:
