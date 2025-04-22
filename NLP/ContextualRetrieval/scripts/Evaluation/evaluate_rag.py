@@ -57,25 +57,3 @@ def evaluate_rag_system(qna_data, retrieved_chunks_list, generated_answers):
     return pd.DataFrame(results, columns=['Query', 'Recall@K', 'MRR', 'NDCG', 'BLEU'])
 
 
-if __name__ == "__main__":
-    # Load ground truth data
-    qna_data = pd.read_csv("qna_data.csv")
-
-    # --- Example Usage (Replace with your actual retrieval and generation results) ---
-    # Simulate retrieval and generation results  (Replace with your actual results)
-
-    retrieved_chunks_list = [
-        ['chunk1', 'chunk3', 'chunk5'],
-        ['chunk2', 'chunk4', 'chunk6'],
-        ['chunk1', 'chunk7', 'chunk9']
-    ]
-    generated_answers = [
-        "This is a generated answer 1",
-        "This is a generated answer 2",
-        "This is a generated answer 3"
-    ]
-
-    # Evaluate the system
-    evaluation_results = evaluate_rag_system(qna_data[:3], retrieved_chunks_list, generated_answers)
-    print(evaluation_results)
-

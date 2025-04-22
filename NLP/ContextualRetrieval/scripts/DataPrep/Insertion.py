@@ -11,7 +11,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # Load environment variables
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-DATA_DIR = os.getenv("DATA_DIR", "data/processed")
+DATA_DIR = os.getenv("DATA_DIR", "/data/processed")
 STANDARD_FILE = f"{DATA_DIR}/standard_rag.json"
 CONTEXTUAL_FILE = f"{DATA_DIR}/contextual_rag.json"
 
@@ -133,8 +133,18 @@ def process_contextual_chunk(chunk):
 
 def main():
     print("Starting ChromaDB Data Insertion...")
-    
+
     try:
+        # Clear existing collections
+        print("Clearing existing collections...")
+        chroma_client.delete_collection("StandardChunks")
+        chroma_client.delete_collection("ContextualChunks")
+
+        # Recreate collections
+        print("Recreating collections...")
+        standard_collection = chroma_client.get_or_create_collection("StandardChunks")
+        contextual_collection = chroma_client.get_or_create_collection("ContextualChunks")
+
         # Check if embeddings already exist before reprocessing
         standard_chunks = vectorize_chunks(STANDARD_FILE, process_standard_chunk)
         contextual_chunks = vectorize_chunks(CONTEXTUAL_FILE, process_contextual_chunk)

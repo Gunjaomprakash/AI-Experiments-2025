@@ -8,7 +8,7 @@ import os
 
 
 # Initialize ChromaDB client
-chroma_client = chromadb.PersistentClient(path="./chroma_db")
+chroma_client = chromadb.PersistentClient(path="../chroma_db")
 
 # Load the ChromaDB collections
 standard_collection = chroma_client.get_or_create_collection("StandardChunks")
@@ -24,7 +24,12 @@ def get_embedding(text, llm):
 def retrieve_chunks(query_text, llm, top_k=3):
     """Retrieve relevant chunks from ChromaDB along with full metadata."""
     query_embedding = get_embedding(query_text, llm)
+    
+    print("\nDebugging Chunks Retrieval...")
+    print(f"Number of documents in StandardChunks collection: {standard_collection.count()}")
 
+    print(f"Number of documents in ContextualChunks collection: {contextual_collection.count()}")
+    
     results_standard = standard_collection.query(query_embeddings=[query_embedding], n_results=top_k)
     results_contextual = contextual_collection.query(query_embeddings=[query_embedding], n_results=top_k)
 
